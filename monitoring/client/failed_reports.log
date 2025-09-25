@@ -1,0 +1,2 @@
+{"attempted_at":"2025-09-25T01:56:17.175Z","payload":{"machine_id":"2a0dff90-1adc-4fef-906e-60b36e529aae","timestamp":"2025-09-25T01:56:17.076Z","event":"PROGRAM_STARTED","data":{"note":"Simulator started for demo"}}}
+{"attempted_at":"2025-09-25T01:56:18.184Z","payload":{"machine_id":"2a0dff90-1adc-4fef-906e-60b36e529aae","timestamp":"2025-09-25T01:56:18.179Z","event":"REPORT_VIEWED","data":{"page":"educational_report"}}}
