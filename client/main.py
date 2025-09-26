@@ -1,5 +1,5 @@
 import tkinter as tk
-from app_ui import SecurityApp
+from ui import SecurityApp
 
 if __name__ == "__main__":
     """
@@ -7,4 +7,5 @@ if __name__ == "__main__":
     """
     root = tk.Tk()
     app = SecurityApp(root)
+
     root.mainloop()
