@@ -5,7 +5,8 @@ from packaging.version import parse
 
 # --- Database Loading ---
 
-def load_vulnerability_db(filepath="vulnerabilities.json"):
+# def load_vulnerability_db(filepath="vulnerabilities.json"):
+def load_vulnerability_db(filepath="vulnerability_database.py"):
     """
     Loads the vulnerability database from a JSON file.
     Handles potential FileNotFoundError and json.JSONDecodeError to prevent crashes.
@@ -25,7 +26,8 @@ def load_vulnerability_db(filepath="vulnerabilities.json"):
 def scan_outdated_software(db):
     """
     Scans for outdated software on Windows by checking versions in the registry.
-    This refactored version is more efficient.
+    Gets outdated software list, gets installed software, checks each software against
+    vulnerability database.
     """
     if platform.system() != "Windows":
         return ["Software scan is only supported on Windows."]
@@ -69,7 +71,7 @@ def scan_outdated_software(db):
 
 def _get_installed_software_windows():
     """
-    (Internal Helper) Retrieves installed software from the Windows Registry.
+    Retrieves installed software from the Windows Registry.
     """
     software_list = {}
     uninstall_key_path = r"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"
@@ -98,7 +100,7 @@ def _get_installed_software_windows():
 def run_all_scans():
     """
     The main entry point for the scanner module.
-    Orchestrates the loading of the DB and execution of all scan modules.
+    Loads vulnerabilities, runs scanning process.
     """
     vulnerability_db = load_vulnerability_db()
     if not vulnerability_db:
