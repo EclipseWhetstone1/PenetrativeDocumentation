@@ -1,3 +1,24 @@
+# (add the os import + FLASK_DEBUG env var logic)
+
+# Stage and commit the changes
+git add server/app.py
+git commit -m "Make Flask debug configurable via FLASK_DEBUG env var"
+
+# Push to GitHub (retry HTTPS if SSH fails)
+git push -u origin feature/flask-debug-env
+# or if SSH keeps failing, switch to HTTPS:
+git remote set-url origin https://github.com/EclipseWhetstone1/PenetrativeDocumentation.git
+git push -u origin feature/flask-debug-env# (add the os import + FLASK_DEBUG env var logic)
+
+# Stage and commit the changes
+git add server/app.py
+git commit -m "Make Flask debug configurable via FLASK_DEBUG env var"
+
+# Push to GitHub (retry HTTPS if SSH fails)
+git push -u origin feature/flask-debug-env
+# or if SSH keeps failing, switch to HTTPS:
+git remote set-url origin https://github.com/EclipseWhetstone1/PenetrativeDocumentation.git
+git push -u origin feature/flask-debug-env
 from flask import Flask, request, jsonify
 import logging
 import json
