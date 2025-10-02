@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const express = require('express');
 const morgan = require('morgan');
+const { generateUserFriendlyReport } = require('./vulnerability_templates');
 
 const PORT = process.env.PORT || 3000;
 const LOG_FILE = path.join(__dirname, 'reports.log');
