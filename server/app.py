@@ -14,7 +14,7 @@ except ImportError:
         return ["ERROR: scanner.py not found or contains an error."]
 
 # --- VirtualBox Configuration ---
-# IMPORTANT: We will have to update these values to match our VM snapshot when we are ready to run and test.
+# TODO: We will have to update these values to match our VM snapshot when we are ready to run and test.
 VM_NAME = "Windows 10 Dev"  # The name of our VM
 SNAPSHOT_NAME = "CleanInstall"   # The name of the snapshot to revert to
 # VBoxManage is usually in the VirtualBox installation directory for Windows.
@@ -44,7 +44,6 @@ def run_vbox_command(args):
         print(error_msg)
         return False, error_msg
 
-
 def revert_to_snapshot():
     """Reverts the VM to the clean snapshot."""
     return run_vbox_command(["snapshot", VM_NAME, "restore", SNAPSHOT_NAME])
@@ -57,7 +56,9 @@ def stop_vm():
     """Shuts down the VM."""
     return run_vbox_command(["controlvm", VM_NAME, "poweroff"])
 
+
 # --- API Endpoints ---
+# --- INTEGRATION: Step 2 ---
 @app.route('/api/scan', methods=['GET'])
 def get_scan_results():
     """Runs the actual scanner."""
@@ -69,7 +70,6 @@ def get_scan_results():
     except Exception as e:
         print(f"An error occurred during scan: {e}")
         return jsonify({"error": "An internal server error occurred during the scan."}), 500
-
 
 @app.route('/api/simulate', methods=['POST'])
 def start_simulation():
