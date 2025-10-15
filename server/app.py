@@ -99,7 +99,7 @@ def start_simulation():
         yield "data: VM started successfully in the background.\n\n"
         time.sleep(5)  # Gives the VM time to boot
 
-        # Step 3: Run the mock exploit
+        # Step 3: Run the exploit inside the VM (currently only placeholder with time.sleep(10) )
         # (In a real scenario, we would use VBoxManage guestcontrol to run a script inside the VM)
         yield "data: Running simulated exploit against the running VM...\n\n"
         time.sleep(10) # Simulate exploit running for 10 seconds
