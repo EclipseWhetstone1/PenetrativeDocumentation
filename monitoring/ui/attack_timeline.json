@@ -1,0 +1,23 @@
+[
+  {
+    "timestamp": "2025-09-24T14:12:05Z",
+    "title": "Phishing email opened",
+    "description": "User opened a phishing email and clicked a malicious link which initiated the initial contact."
+  },
+  {
+    "timestamp": "2025-09-24T14:13:10Z",
+    "title": "Malicious payload downloaded",
+    "description": "A payload was downloaded and executed in the user's browser sandbox (simulated)."
+  },
+  {
+    "timestamp": "2025-09-24T14:14:30Z",
+    "title": "Local reconnaissance",
+    "description": "Script enumerated browser version and basic firewall state. Minimal data collected for demonstration."
+  },
+  {
+    "timestamp": "2025-09-24T14:15:12Z",
+    "title": "Report generated and displayed",
+    "description": "An educational report view was generated explaining the vulnerability and how to remediate it."
+  }
+]
+
