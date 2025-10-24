@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import AttackTimeline from "./components/AttackTimeline";
+
 
 // CSS-in-JS styling, just to keep all the styling in one file.
 const styles = {
@@ -146,10 +148,16 @@ function App() {
         <pre style={{...styles.preformatted, ...styles.log}}>
           {simulationLog.length > 0 ? simulationLog.join('\n') : 'Simulation log will appear here.'}
         </pre>
+    </div>
+       <div style={styles.section}>
+        <h2 style={styles.sectionTitle}>Attack Timeline</h2>
+        <p>Attack Timeline loaded successfully</p>
+        <AttackTimeline />
       </div>
     </div>
   );
 }
+
 
 export default App;
 
