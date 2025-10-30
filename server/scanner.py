@@ -5,8 +5,8 @@ from packaging.version import parse
 
 # --- Database Loading ---
 
-def load_vulnerability_db(filepath="vulnerabilities.json"):
-#def load_vulnerability_db(filepath="vulnerability_database.py"):
+#def load_vulnerability_db(filepath="vulnerabilities.json"):
+def load_vulnerability_db(filepath="vulnerability_database.json"):
     """
     Loads the vulnerability database from a JSON file.
     Handles potential FileNotFoundError and json.JSONDecodeError to prevent crashes.
