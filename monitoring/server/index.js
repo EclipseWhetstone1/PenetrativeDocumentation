@@ -9,8 +9,6 @@ const vulnerabilityTemplates = require('./vulnerability_templates');
 
 const port = 3001;
 // const PORT = process.env.PORT || 3000; // Old PORT value
-<<<<<<< HEAD
-=======
 
 app.use(cors());
 app.use(bodyParser.json());
@@ -18,18 +16,8 @@ app.use(bodyParser.json());
 // For persistent file storage
 const REPORTS_DIR = path.join(__dirname, 'reports');
 const EVENTS_LOG_FILE = path.join(__dirname, 'events.log');
->>>>>>> 13d3e07 (Significant changes to App.css, App.js, index.js, package.json, PenetrativeDocumentation.iml, profiles_settings.xml, scanner.py, test_scanner.py.)
 
 const app = express();
-
-app.use(cors());
-app.use(bodyParser.json());
-app.use(express.static(path.join(__dirname, '..', 'frontend', 'build')));
-
-// For persistent file storage
-const REPORTS_DIR = path.join(__dirname, 'reports');
-const EVENTS_LOG_FILE = path.join(__dirname, 'events.log');
-
 
 // middleware
 app.use(morgan('dev'));
@@ -101,21 +89,8 @@ app.get('/api/vulnerability-report/:machine_id', (req, res) => {
       const payload = JSON.parse(rawData);
 
       // Use the existing template logic to format the report
-<<<<<<< HEAD
-      const reportGenerator = vulnerabilityTemplates.generateUserFriendlyReport ||
-        vulnerabilityTemplates.generateEasyToUnderstandReport;
-
-      if (typeof reportGenerator !== 'function') {
-        console.error('No report generator found in vulnerability_templates.js');
-        return res.status(500).json({ error: 'Report generator unavailable' });
-      }
-
-      const formattedReport = reportGenerator(payload);
-      res.json(formattedReport);
-=======
       const easyToUnderstandReport = vulnerabilityTemplates.generateEasyToUnderstandReport(payload);
       res.json(easyToUnderstandReport);
->>>>>>> 13d3e07 (Significant changes to App.css, App.js, index.js, package.json, PenetrativeDocumentation.iml, profiles_settings.xml, scanner.py, test_scanner.py.)
 
     } else {
       res.status(404).json({ error: `Report not found for machine_id: ${machine_id}` });
@@ -152,29 +127,10 @@ app.get('/api/events', (req, res) => {
 });
 
 // Start
-<<<<<<< HEAD
-<<<<<<< HEAD
-app.use((req, res) => {
-=======
-app.get('*', (req, res) => {
->>>>>>> fad4de8 (Minor changes to scanner.py and index.js while trying to fix bugs)
-  res.sendFile(path.join(__dirname, '..', 'frontend', 'build', 'index.html'));
-});
-
-if (require.main === module) {
-    app.listen(port, () => {
-        console.log(`Monitoring server listening on port ${port}`);
-    });
-};
-
-module.exports = app;
-
-=======
 app.listen(port, () => {
   console.log(`Monitoring server listening on port ${port}`);
 });
 
->>>>>>> 13d3e07 (Significant changes to App.css, App.js, index.js, package.json, PenetrativeDocumentation.iml, profiles_settings.xml, scanner.py, test_scanner.py.)
 
 
 // --- OLD CODE - DELETE LATER ---

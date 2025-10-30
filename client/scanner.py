@@ -11,30 +11,8 @@ SERVER_URL = "http://localhost:3001/api/vulnerability-scan"
 MACHINE_ID_FILE = os.path.join(os.path.dirname(__file__), '..', 'monitoring', 'client', 'machine_id.txt')
 
 
-<<<<<<< HEAD
-# client/scanner.py (re-paste this function)
-
-def get_machine_id():
-    """
-    Reads a persistent machine ID from a file in C: ProgramData,
-    or creates one if it doesn't exist.
-    """
-    # Use a system-wide, writable directory
-    APP_DATA_DIR = os.path.join(os.environ['PROGRAMDATA'], 'EducationalScanner')
-    MACHINE_ID_FILE = os.path.join(APP_DATA_DIR, 'machine_id.txt')
-
-    # Ensure the directory exists
-    try:
-        os.makedirs(APP_DATA_DIR, exist_ok=True)
-    except OSError as e:
-        print(f"Error creating directory {APP_DATA_DIR}: {e}")
-        # Fallback to a volatile ID if we can't create the dir
-        return "volatile-machine-id-" + str(uuid.uuid4())
-
-=======
 def get_machine_id():
     # Reads a persistent machine ID from a file, or creates one if it doesn't exist.
->>>>>>> 13d3e07 (Significant changes to App.css, App.js, index.js, package.json, PenetrativeDocumentation.iml, profiles_settings.xml, scanner.py, test_scanner.py.)
     try:
         with open(MACHINE_ID_FILE, 'r') as f:
             machine_id = f.read().strip()
@@ -42,11 +20,7 @@ def get_machine_id():
             raise FileNotFoundError
         return machine_id
     except FileNotFoundError:
-<<<<<<< HEAD
-        print(f"Machine ID file not found at {MACHINE_ID_FILE}, creating one...")
-=======
         print("Machine ID file not found, creating one...")
->>>>>>> 13d3e07 (Significant changes to App.css, App.js, index.js, package.json, PenetrativeDocumentation.iml, profiles_settings.xml, scanner.py, test_scanner.py.)
         machine_id = str(uuid.uuid4())
         try:
             with open(MACHINE_ID_FILE, 'w') as f:
@@ -54,31 +28,7 @@ def get_machine_id():
             return machine_id
         except Exception as e:
             print(f"Error writing machine ID file: {e}")
-<<<<<<< HEAD
-            return "volatile-machine-id-" + str(uuid.uuid4())
-
-#
-# def get_machine_id():
-#     # Reads a persistent machine ID from a file, or creates one if it doesn't exist.
-#     try:
-#         with open(MACHINE_ID_FILE, 'r') as f:
-#             machine_id = f.read().strip()
-#         if not machine_id:
-#             raise FileNotFoundError
-#         return machine_id
-#     except FileNotFoundError:
-#         print("Machine ID file not found, creating one...")
-#         machine_id = str(uuid.uuid4())
-#         try:
-#             with open(MACHINE_ID_FILE, 'w') as f:
-#                 f.write(machine_id)
-#             return machine_id
-#         except Exception as e:
-#             print(f"Error writing machine ID file: {e}")
-#             return "volatile-machine-id-" + str(uuid.uuid4())  # Fallback
-=======
             return "volatile-machine-id-" + str(uuid.uuid4())  # Fallback
->>>>>>> 13d3e07 (Significant changes to App.css, App.js, index.js, package.json, PenetrativeDocumentation.iml, profiles_settings.xml, scanner.py, test_scanner.py.)
 
 
 def send_vulnerability_report(vulnerabilities):
