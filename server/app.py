@@ -1,24 +1,24 @@
-# (add the os import + FLASK_DEBUG env var logic)
+# # (add the os import + FLASK_DEBUG env var logic)
 
-# Stage and commit the changes
-git add server/app.py
-git commit -m "Make Flask debug configurable via FLASK_DEBUG env var"
+# # Stage and commit the changes
+# git add server/app.py
+# git commit -m "Make Flask debug configurable via FLASK_DEBUG env var"
 
-# Push to GitHub (retry HTTPS if SSH fails)
-git push -u origin feature/flask-debug-env
-# or if SSH keeps failing, switch to HTTPS:
-git remote set-url origin https://github.com/EclipseWhetstone1/PenetrativeDocumentation.git
-git push -u origin feature/flask-debug-env# (add the os import + FLASK_DEBUG env var logic)
+# # Push to GitHub (retry HTTPS if SSH fails)
+# git push -u origin feature/flask-debug-env
+# # or if SSH keeps failing, switch to HTTPS:
+# git remote set-url origin https://github.com/EclipseWhetstone1/PenetrativeDocumentation.git
+# git push -u origin feature/flask-debug-env# (add the os import + FLASK_DEBUG env var logic)
 
-# Stage and commit the changes
-git add server/app.py
-git commit -m "Make Flask debug configurable via FLASK_DEBUG env var"
+# # Stage and commit the changes
+# git add server/app.py
+# git commit -m "Make Flask debug configurable via FLASK_DEBUG env var"
 
-# Push to GitHub (retry HTTPS if SSH fails)
-git push -u origin feature/flask-debug-env
-# or if SSH keeps failing, switch to HTTPS:
-git remote set-url origin https://github.com/EclipseWhetstone1/PenetrativeDocumentation.git
-git push -u origin feature/flask-debug-env
+# # Push to GitHub (retry HTTPS if SSH fails)
+# git push -u origin feature/flask-debug-env
+# # or if SSH keeps failing, switch to HTTPS:
+# git remote set-url origin https://github.com/EclipseWhetstone1/PenetrativeDocumentation.git
+# git push -u origin feature/flask-debug-env
 
 from flask import Flask, request, jsonify, Response
 from flask_cors import CORS
@@ -112,15 +112,16 @@ def run_in_guest():
 # --- INTEGRATION: Step 2 ---
 @app.route('/api/scan', methods=['GET'])
 def get_scan_results():
-    """Runs the actual scanner."""
-    print("Received request to /api/scan. Running scanner...")
+    """Runs the enhanced scanner and returns Recompute Findings."""
+    print("Received request to /api/scan. Running enhanced scanner...")
     try:
-        results = run_all_scans()
-        print(f"Scan complete. Found {len(results)} items.")
-        return jsonify(results)
+        findings = run_all_scans()  # updated scanner.py returns multi-line strings
+        # Wrap in JSON according to INT002B contract
+        return jsonify({"findings": findings}), 200
     except Exception as e:
-        print(f"An error occurred during scan: {e}")
-        return jsonify({"error": "An internal server error occurred during the scan."}), 500
+        print(f"Error during scan: {e}")
+        return jsonify({"error": "Internal server error", "message": str(e)}), 500
+
 
 @app.route('/api/simulate', methods=['POST'])
 def start_simulation():
