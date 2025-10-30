@@ -5,8 +5,8 @@ from packaging.version import parse
 
 # --- Database Loading ---
 
-# def load_vulnerability_db(filepath="vulnerabilities.json"):
-def load_vulnerability_db(filepath="vulnerability_database.py"):
+def load_vulnerability_db(filepath="vulnerabilities.json"):
+#def load_vulnerability_db(filepath="vulnerability_database.py"):
     """
     Loads the vulnerability database from a JSON file.
     Handles potential FileNotFoundError and json.JSONDecodeError to prevent crashes.
@@ -53,11 +53,16 @@ def scan_outdated_software(db):
                 if min_safe_version_str:
                     try:
                         if parse(installed_version_str) < parse(min_safe_version_str):
+                            remediation = rules.get("remediation", "No remediation provided.")
+                            reference_cve = rules.get("reference_cve", "No CVE reference available.")
+                            
                             finding = (
                                 f"Outdated Software: {rule_name}\n"
                                 f"  - Your version: {installed_version_str}\n"
                                 f"  - Recommended minimum: {min_safe_version_str}\n"
-                                f"  - Risk: {risk_desc}"
+                                f"  - Risk: {risk_desc}\n"
+                                f"  - Remediation: {remediation}\n"
+                                f"  - Reference CVE: {reference_cve}"
                             )
                             found_vulnerabilities.append(finding)
                             # Found a match for this installed program, no need to check other rules

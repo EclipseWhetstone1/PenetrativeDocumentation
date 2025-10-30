@@ -112,15 +112,16 @@ def run_in_guest():
 # --- INTEGRATION: Step 2 ---
 @app.route('/api/scan', methods=['GET'])
 def get_scan_results():
-    """Runs the actual scanner."""
-    print("Received request to /api/scan. Running scanner...")
+    """Runs the enhanced scanner and returns Recompute Findings."""
+    print("Received request to /api/scan. Running enhanced scanner...")
     try:
-        results = run_all_scans()
-        print(f"Scan complete. Found {len(results)} items.")
-        return jsonify(results)
+        findings = run_all_scans()  # updated scanner.py returns multi-line strings
+        # Wrap in JSON according to INT002B contract
+        return jsonify({"findings": findings}), 200
     except Exception as e:
-        print(f"An error occurred during scan: {e}")
-        return jsonify({"error": "An internal server error occurred during the scan."}), 500
+        print(f"Error during scan: {e}")
+        return jsonify({"error": "Internal server error", "message": str(e)}), 500
+
 
 @app.route('/api/simulate', methods=['POST'])
 def start_simulation():
