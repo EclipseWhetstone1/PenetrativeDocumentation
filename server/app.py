@@ -26,6 +26,9 @@ import logging
 import json
 import time
 import os
+# Enable toggling Flask debug mode via environment variable FLASK_DEBUG
+# Accepts: "1", "true", "True", "yes" to enable. Defaults to False.
+FLASK_DEBUG = os.getenv("FLASK_DEBUG", "False").lower() in ("1", "true", "yes")
 import subprocess
 
 # --- INTEGRATION: Step 1 ---
@@ -189,7 +192,8 @@ def start_simulation():
     return Response(event_stream(), mimetype='text/event-stream')
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000) # left off host="0.0.0.0"
+    # app.run(debug=True, port=5000) # left off host="0.0.0.0"
+    app.run(debug=FLASK_DEBUG, port=5000)
 
 
 # --- Eclipse's original block of code ---
