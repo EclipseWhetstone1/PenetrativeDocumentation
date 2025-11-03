@@ -190,6 +190,64 @@ def start_simulation():
         yield "data: FINISHED\n\n"
 
     return Response(event_stream(), mimetype='text/event-stream')
+# --- Remediation endpoint (US010) ---
+@app.route("/", methods=["GET"])
+def index():
+    """Basic root endpoint for testing."""
+    return """
+    <h2>Penetrative Documentation Server</h2>
+    <p>Available endpoints:</p>
+    <ul>
+      <li><code>/api/vulns/&lt;vuln_key&gt;/remediation</code></li>
+      <li><code>/api/scan</code></li>
+      <li><code>/api/simulate</code></li>
+    </ul>
+    """, 200
+@app.route("/api/vulns/<vuln_key>/remediation", methods=["GET"])
+def get_remediation(vuln_key):
+    """
+    Return public remediation guidance for a given vulnerability key.
+    Uses vulnerability_database.json -> outdated_software mapping.
+    """
+    import json
+    from flask import jsonify
+    from urllib.parse import unquote
+    import os
+
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    DB_PATH = os.path.join(BASE_DIR, "vulnerability_database.json")
+
+    try:
+        with open(DB_PATH, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            vulns = data.get("outdated_software", {})
+    except FileNotFoundError:
+        return jsonify({"error": "vulnerability_database.json not found"}), 500
+    except json.JSONDecodeError:
+        return jsonify({"error": "failed to parse vulnerability_database.json"}), 500
+
+    key = unquote(vuln_key)
+
+    # Case-insensitive lookup
+    if key not in vulns:
+        for k in vulns:
+            if k.lower() == key.lower():
+                key = k
+                break
+
+    if key not in vulns:
+        return jsonify({"error": "vulnerability not found"}), 404
+
+    vuln = vulns[key]
+    safe_content = {
+        "name": key,
+        "summary": vuln.get("risk", ""),
+        "remediation": vuln.get("remediation", ""),
+        "reference_cve": vuln.get("reference_cve"),
+        "tutorial_url": vuln.get("tutorial_url", ""),
+        "walkthrough": vuln.get("walkthrough", [])
+    }
+    return jsonify(safe_content), 200
 
 if __name__ == '__main__':
     # app.run(debug=True, port=5000) # left off host="0.0.0.0"
