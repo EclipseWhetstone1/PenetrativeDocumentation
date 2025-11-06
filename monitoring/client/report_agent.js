@@ -1,4 +1,3 @@
-// monitoring/client/report_agent.js
 require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
@@ -9,13 +8,13 @@ const VULNERABILITY_SCAN_URL = process.env.VULNERABILITY_SCAN_URL || 'http://127
 const MACHINE_ID_FILE = path.join(__dirname, 'machine_id.txt');
 const FAILED_LOG = path.join(__dirname, 'failed_reports.log');
 
-// Ensure Node 18+ has global fetch
+
 if (typeof fetch !== 'function') {
   console.error('Error: fetch is not available in this Node runtime. Use Node 18+ or add a fetch polyfill.');
   process.exit(1);
 }
 
-// persistent machine id
+
 let machineId;
 if (fs.existsSync(MACHINE_ID_FILE)) {
   machineId = fs.readFileSync(MACHINE_ID_FILE, 'utf8').trim();
@@ -42,7 +41,7 @@ async function sendEvent(eventName, data = {}) {
     if (!resp.ok) {
       const text = await resp.text().catch(()=>'<no-body>');
       console.error(`Server returned ${resp.status}: ${text}`);
-      // log failure locally
+      // log failure 
       fs.appendFileSync(FAILED_LOG, JSON.stringify({ attempted_at: new Date().toISOString(), payload, status: resp.status }) + '\n');
     } else {
       console.log('Report sent:', payload);
@@ -52,6 +51,8 @@ async function sendEvent(eventName, data = {}) {
     fs.appendFileSync(FAILED_LOG, JSON.stringify({ attempted_at: new Date().toISOString(), payload, error: (err && err.message) || String(err) }) + '\n');
   }
 }
+
+feature/github-test-grishma
 
 // send vulnerability scan US002
 async function sendVulnerabilityScan(vulnerabilities) { 
@@ -83,6 +84,7 @@ async function sendVulnerabilityScan(vulnerabilities) {
 
 
 // Example run: send PROGRAM_STARTED then REPORT_VIEWED after 1s
+ dev
 (async () => {
   await sendEvent('PROGRAM_STARTED', { note: 'Simulator started for demo' });
   setTimeout(() => sendEvent('REPORT_VIEWED', { page: 'educational_report' }), 1000);
