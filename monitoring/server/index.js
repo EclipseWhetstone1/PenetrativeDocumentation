@@ -10,14 +10,16 @@ const vulnerabilityTemplates = require('./vulnerability_templates');
 const port = 3001;
 // const PORT = process.env.PORT || 3000; // Old PORT value
 
+const app = express();
+
 app.use(cors());
 app.use(bodyParser.json());
+app.use(express.static(path.join(__dirname, '..', 'frontend', 'build')));
 
 // For persistent file storage
 const REPORTS_DIR = path.join(__dirname, 'reports');
 const EVENTS_LOG_FILE = path.join(__dirname, 'events.log');
 
-const app = express();
 
 // middleware
 app.use(morgan('dev'));
@@ -127,9 +129,17 @@ app.get('/api/events', (req, res) => {
 });
 
 // Start
-app.listen(port, () => {
-  console.log(`Monitoring server listening on port ${port}`);
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'frontend', 'build', 'index.html'));
 });
+
+if (require.main === module) {
+    app.listen(port, () => {
+        console.log(`Monitoring server listening on port ${port}`);
+    });
+};
+
+module.exports = app;
 
 
 
