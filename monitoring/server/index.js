@@ -137,7 +137,11 @@ app.get('/api/events', (req, res) => {
 });
 
 // Start
+<<<<<<< HEAD
 app.use((req, res) => {
+=======
+app.get('*', (req, res) => {
+>>>>>>> fad4de8 (Minor changes to scanner.py and index.js while trying to fix bugs)
   res.sendFile(path.join(__dirname, '..', 'frontend', 'build', 'index.html'));
 });
 
