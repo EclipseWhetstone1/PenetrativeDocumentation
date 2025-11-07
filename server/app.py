@@ -1,24 +1,24 @@
-# (add the os import + FLASK_DEBUG env var logic)
+# # (add the os import + FLASK_DEBUG env var logic)
 
-# Stage and commit the changes
-git add server/app.py
-git commit -m "Make Flask debug configurable via FLASK_DEBUG env var"
+# # Stage and commit the changes
+# git add server/app.py
+# git commit -m "Make Flask debug configurable via FLASK_DEBUG env var"
 
-# Push to GitHub (retry HTTPS if SSH fails)
-git push -u origin feature/flask-debug-env
-# or if SSH keeps failing, switch to HTTPS:
-git remote set-url origin https://github.com/EclipseWhetstone1/PenetrativeDocumentation.git
-git push -u origin feature/flask-debug-env# (add the os import + FLASK_DEBUG env var logic)
+# # Push to GitHub (retry HTTPS if SSH fails)
+# git push -u origin feature/flask-debug-env
+# # or if SSH keeps failing, switch to HTTPS:
+# git remote set-url origin https://github.com/EclipseWhetstone1/PenetrativeDocumentation.git
+# git push -u origin feature/flask-debug-env# (add the os import + FLASK_DEBUG env var logic)
 
-# Stage and commit the changes
-git add server/app.py
-git commit -m "Make Flask debug configurable via FLASK_DEBUG env var"
+# # Stage and commit the changes
+# git add server/app.py
+# git commit -m "Make Flask debug configurable via FLASK_DEBUG env var"
 
-# Push to GitHub (retry HTTPS if SSH fails)
-git push -u origin feature/flask-debug-env
-# or if SSH keeps failing, switch to HTTPS:
-git remote set-url origin https://github.com/EclipseWhetstone1/PenetrativeDocumentation.git
-git push -u origin feature/flask-debug-env
+# # Push to GitHub (retry HTTPS if SSH fails)
+# git push -u origin feature/flask-debug-env
+# # or if SSH keeps failing, switch to HTTPS:
+# git remote set-url origin https://github.com/EclipseWhetstone1/PenetrativeDocumentation.git
+# git push -u origin feature/flask-debug-env
 
 from flask import Flask, request, jsonify, Response
 from flask_cors import CORS
@@ -26,6 +26,9 @@ import logging
 import json
 import time
 import os
+# Enable toggling Flask debug mode via environment variable FLASK_DEBUG
+# Accepts: "1", "true", "True", "yes" to enable. Defaults to False.
+FLASK_DEBUG = os.getenv("FLASK_DEBUG", "False").lower() in ("1", "true", "yes")
 import subprocess
 
 # --- INTEGRATION: Step 1 ---
@@ -112,15 +115,16 @@ def run_in_guest():
 # --- INTEGRATION: Step 2 ---
 @app.route('/api/scan', methods=['GET'])
 def get_scan_results():
-    """Runs the actual scanner."""
-    print("Received request to /api/scan. Running scanner...")
+    """Runs the enhanced scanner and returns Recompute Findings."""
+    print("Received request to /api/scan. Running enhanced scanner...")
     try:
-        results = run_all_scans()
-        print(f"Scan complete. Found {len(results)} items.")
-        return jsonify(results)
+        findings = run_all_scans()  # updated scanner.py returns multi-line strings
+        # Wrap in JSON according to INT002B contract
+        return jsonify({"findings": findings}), 200
     except Exception as e:
-        print(f"An error occurred during scan: {e}")
-        return jsonify({"error": "An internal server error occurred during the scan."}), 500
+        print(f"Error during scan: {e}")
+        return jsonify({"error": "Internal server error", "message": str(e)}), 500
+
 
 @app.route('/api/simulate', methods=['POST'])
 def start_simulation():
@@ -186,9 +190,68 @@ def start_simulation():
         yield "data: FINISHED\n\n"
 
     return Response(event_stream(), mimetype='text/event-stream')
+# --- Remediation endpoint (US010) ---
+@app.route("/", methods=["GET"])
+def index():
+    """Basic root endpoint for testing."""
+    return """
+    <h2>Penetrative Documentation Server</h2>
+    <p>Available endpoints:</p>
+    <ul>
+      <li><code>/api/vulns/&lt;vuln_key&gt;/remediation</code></li>
+      <li><code>/api/scan</code></li>
+      <li><code>/api/simulate</code></li>
+    </ul>
+    """, 200
+@app.route("/api/vulns/<vuln_key>/remediation", methods=["GET"])
+def get_remediation(vuln_key):
+    """
+    Return public remediation guidance for a given vulnerability key.
+    Uses vulnerability_database.json -> outdated_software mapping.
+    """
+    import json
+    from flask import jsonify
+    from urllib.parse import unquote
+    import os
+
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    DB_PATH = os.path.join(BASE_DIR, "vulnerability_database.json")
+
+    try:
+        with open(DB_PATH, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            vulns = data.get("outdated_software", {})
+    except FileNotFoundError:
+        return jsonify({"error": "vulnerability_database.json not found"}), 500
+    except json.JSONDecodeError:
+        return jsonify({"error": "failed to parse vulnerability_database.json"}), 500
+
+    key = unquote(vuln_key)
+
+    # Case-insensitive lookup
+    if key not in vulns:
+        for k in vulns:
+            if k.lower() == key.lower():
+                key = k
+                break
+
+    if key not in vulns:
+        return jsonify({"error": "vulnerability not found"}), 404
+
+    vuln = vulns[key]
+    safe_content = {
+        "name": key,
+        "summary": vuln.get("risk", ""),
+        "remediation": vuln.get("remediation", ""),
+        "reference_cve": vuln.get("reference_cve"),
+        "tutorial_url": vuln.get("tutorial_url", ""),
+        "walkthrough": vuln.get("walkthrough", [])
+    }
+    return jsonify(safe_content), 200
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000) # left off host="0.0.0.0"
+    # app.run(debug=True, port=5000) # left off host="0.0.0.0"
+    app.run(debug=FLASK_DEBUG, port=5000)
 
 
 # --- Eclipse's original block of code ---
