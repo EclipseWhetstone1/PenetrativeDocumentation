@@ -251,7 +251,7 @@ def get_remediation(vuln_key):
 
 if __name__ == '__main__':
     # app.run(debug=True, port=5000) # left off host="0.0.0.0"
-    app.run(debug=FLASK_DEBUG, port=5000)
+    app.run(debug=FLASK_DEBUG, port=5001)
 
 
 # --- Eclipse's original block of code ---
