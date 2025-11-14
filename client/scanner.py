@@ -115,7 +115,7 @@ def _load_vulnerability_database():
     try:
         with open(db_path, 'r') as f:
             data = json.load(f)
-            return data.get("software", [])
+            return data.get("outdated_software", {})
     except json.JSONDecodeError:
         print(f"Error: Could not decode JSON from {db_path}. Is it a valid JSON file?")
         return []
@@ -132,25 +132,24 @@ def scan_outdated_software(installed_software, vulnerability_db):
 
     installed_map = {item['name'].lower(): item['version'] for item in installed_software}
 
-    for vuln in vulnerability_db:
-        vuln_name_lower = vuln['name'].lower()
+    for vuln, vuln_details in vulnerability_db.items():
+        vuln_name_lower = vuln.lower()
         if vuln_name_lower in installed_map:
             installed_version = installed_map[vuln_name_lower]
 
             try:
-                if version.parse(installed_version) < version.parse(vuln['vulnerable_version']):
-                    vuln_details = {
-                        "name": vuln['name'],
+                if version.parse(installed_version) < version.parse(vuln_details['minimum_version']):
+                    finding = {
+                        "name": vuln,
                         "installed_version": installed_version,
-                        "vulnerable_version": vuln['vulnerable_version'],
-                        "cve": vuln['cve'],
-                        "solution": vuln['solution']
+                        "minimum_version": vuln_details.get('minimum_version'),
+                        "risk": vuln_details.get('risk')
                     }
-                    outdated_software.append(vuln_details)
+                    outdated_software.append(finding)
             except version.InvalidVersion:
                 # Catches empty or invalid versions
                 print(f"Warning: Could not compare versions for {vuln['name']}. Invalid format.")
-                print(f"  Installed: '{installed_version}', Vulnerable: '{vuln['vulnerable_version']}'")
+                print(f"  Installed: '{installed_version}', Vulnerable: '{vuln['minimum_version']}'")
                 continue
 
     return outdated_software
