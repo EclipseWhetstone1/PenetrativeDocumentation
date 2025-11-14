@@ -4,14 +4,30 @@ import json
 import requests
 import uuid
 import datetime
+import logging
 from packaging import version
 
 # --- Server/Machine ID Configuration ---
 SERVER_URL = "http://localhost:3001/api/vulnerability-scan"
 MACHINE_ID_FILE = os.path.join(os.path.dirname(__file__), '..', 'monitoring', 'client', 'machine_id.txt')
 
+# --- Timeline Configuration ---
+APP_DATA_DIR = os.path.join(os.environ['PROGRAMDATA'], 'EducationalScanner')
+TIMELINE_LOG_FILE = os.path.join(APP_DATA_DIR, 'timeline.log')
+try:
+    os.makedirs(APP_DATA_DIR, exist_ok=True)
+except OSError:
+    pass
 
-# client/scanner.py (re-paste this function)
+timeline_logger = logging.getLogger('TimelineLogger')
+timeline_logger.setLevel(logging.INFO)
+try:
+    handler = logging.FileHandler(TIMELINE_LOG_FILE, mode='w')
+    handler.setFormatter(logging.Formatter('%(asctime)s - %(message)s', datefmt='%Y-%m-%dT%H:%M:%SZ'))
+    timeline_logger.addHandler(handler)
+except Exception:
+    print("Warning: Could not create timeline log file.")
+
 
 def get_machine_id():
     """
@@ -106,6 +122,7 @@ def _load_vulnerability_database():
     """
     # This now correctly looks for 'vulnerabilities.json'
     db_path = os.path.join(os.path.dirname(__file__), 'vulnerabilities.json')
+    timeline_logger.info("Vulnerability database loaded.")
 
     if not os.path.exists(db_path):
         print(f"Error: Vulnerability database not found at {db_path}.")
@@ -131,6 +148,7 @@ def scan_outdated_software(installed_software, vulnerability_db):
     outdated_software = []
 
     installed_map = {item['name'].lower(): item['version'] for item in installed_software}
+    timeline_logger.info("Scan module started: scan_outdated_software")
 
     for vuln, vuln_details in vulnerability_db.items():
         vuln_name_lower = vuln.lower()
@@ -139,6 +157,7 @@ def scan_outdated_software(installed_software, vulnerability_db):
 
             try:
                 if version.parse(installed_version) < version.parse(vuln_details['minimum_version']):
+                    timeline_logger.info(f"Vulnerability found: {vuln} (Version: {installed_version})")
                     finding = {
                         "name": vuln,
                         "installed_version": installed_version,
@@ -151,7 +170,7 @@ def scan_outdated_software(installed_software, vulnerability_db):
                 print(f"Warning: Could not compare versions for {vuln['name']}. Invalid format.")
                 print(f"  Installed: '{installed_version}', Vulnerable: '{vuln['minimum_version']}'")
                 continue
-
+    timeline_logger.info("Scan module finished: scan_outdated_software")
     return outdated_software
 
 
@@ -195,6 +214,7 @@ def _get_installed_software_windows():
 
 def run_all_scans():
     # Loads DB, scans registry, and sends report.
+    timeline_logger.info("----SCAN STARTED----")
     print("Loading vulnerability database...")
     vulnerability_db = _load_vulnerability_database()
     if not vulnerability_db:
@@ -217,6 +237,7 @@ def run_all_scans():
     if not outdated_software:
         return "Scan complete. No outdated software found."
     else:
+        timeline_logger.info(f"--- Scan Complete: {len(outdated_software)} vulnerabilities found. ---")
         return f"Scan complete. Found {len(outdated_software)} vulnerabilities."
 
 if __name__ == '__main__':
