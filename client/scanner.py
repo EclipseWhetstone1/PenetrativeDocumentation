@@ -8,7 +8,7 @@ import logging
 from packaging import version
 
 # --- Server/Machine ID Configuration ---
-SERVER_URL = "http://localhost:3001/api/vulnerability-scan"
+SERVER_URL = "http://localhost:5000/api/scan"
 MACHINE_ID_FILE = os.path.join(os.path.dirname(__file__), '..', 'monitoring', 'client', 'machine_id.txt')
 
 # --- Timeline Configuration ---
@@ -111,7 +111,7 @@ def send_vulnerability_report(vulnerabilities):
         print(f"An unexpected error occurred: {e}")
 
 
-# --- Scan Functions ---
+# ---- Scan Functions ----
 
 
 # --- Database Loading ---
