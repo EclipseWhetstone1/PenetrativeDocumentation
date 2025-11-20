@@ -62,25 +62,50 @@ CORS(app)
 # --- VBoxManage Helper Functions ---
 
 def run_vbox_command(args):
-    """Helper function to run VBoxManage commands."""
+    def run_vbox_command(args):
+        """Helper function to run VBoxManage commands safely without exposing sensitive data."""
     command = [VBOXMANAGE_PATH] + args
-    print(f"Running command: {' '.join(command)}")
+
+    # Create a redacted version for logging
+    redacted = []
+    skip_next = False
+    
+    for item in command:
+        if skip_next:
+            redacted.append("***REDACTED***")
+            skip_next = False
+        elif item.lower() in ("--password", "-p"):
+            skip_next = True
+            redacted.append(item)
+        else:
+            redacted.append(item)
+
+    print("Running VBoxManage command (arguments redacted for security).")
+
     try:
-        # Using check=True will raise a CalledProcessError if the command fails
-        result = subprocess.run(command, check=True, capture_output=True, text=True)
+        result = subprocess.run(
+            command,
+            check=True,
+            capture_output=True,
+            text=True
+        )
         return True, result.stdout
+
     except FileNotFoundError:
         error_msg = f"Error: VBoxManage.exe not found at '{VBOXMANAGE_PATH}'. Please check the path."
         print(error_msg)
         return False, error_msg
+
     except subprocess.CalledProcessError as e:
         error_msg = f"Error executing command: {e}\n{e.stderr}"
         print(error_msg)
         return False, error_msg
+
     except subprocess.TimeoutExpired:
         error_msg = "Error: VBoxManage command timed out after 2 minutes."
         print(error_msg)
         return False, error_msg
+
 
 def revert_to_snapshot():
     """Reverts the VM to the clean snapshot."""
