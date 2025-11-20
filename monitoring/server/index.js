@@ -10,25 +10,24 @@ const vulnerabilityTemplates = require('./vulnerability_templates');
 const port = 3001;
 // const PORT = process.env.PORT || 3000; // Old PORT value
 
+const app = express();
+
 app.use(cors());
 app.use(bodyParser.json());
+app.use(express.static(path.join(__dirname, '..', 'frontend', 'build')));
 
 // For persistent file storage
 const REPORTS_DIR = path.join(__dirname, 'reports');
 const EVENTS_LOG_FILE = path.join(__dirname, 'events.log');
 
-const app = express();
 
 // middleware
 app.use(morgan('dev'));
 app.use(express.json({ limit: '1mb' }));
 
-
+// Health check
 app.get('/api/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
-<<<<<<< HEAD
-//receive reports
-=======
 // Checks that the 'reports' directory exists
 if (!fs.existsSync(REPORTS_DIR)) {
   fs.mkdirSync(REPORTS_DIR);
@@ -40,42 +39,21 @@ if (!fs.existsSync(REPORTS_DIR)) {
 // let vulnerabilityReports = {};
 
 // main endpoint: receive reports
->>>>>>> 6204083 (Significant changes to App.css, App.js, index.js, package.json, PenetrativeDocumentation.iml, profiles_settings.xml, scanner.py, test_scanner.py.)
 app.post('/api/report', (req, res) => {
   const event = req.body;
   console.log('Received event:', event);
 
   // --- MODIFIED: Append to log file ---
   try {
-<<<<<<< HEAD
-    const payload = req.body;
-
-    // Basic validation 
-    if (!payload.machine_id || !payload.timestamp || !payload.event) {
-      return res.status(400).json({ error: 'Invalid payload: machine_id, timestamp, and event required' });
-    }
-
-    // Append the JSON payload to a log file 
-    const line = JSON.stringify({ received_at: new Date().toISOString(), payload }) + '\n';
-    fs.appendFileSync(LOG_FILE, line);
-
-    
-
-    return res.status(200).json({ status: 'received' });
-=======
     const logEntry = JSON.stringify(event) + '\n';
     fs.appendFileSync(EVENTS_LOG_FILE, logEntry);
     res.status(200).send('Event received');
->>>>>>> 6204083 (Significant changes to App.css, App.js, index.js, package.json, PenetrativeDocumentation.iml, profiles_settings.xml, scanner.py, test_scanner.py.)
   } catch (err) {
     console.error('Failed to write event log:', err);
     res.status(500).send('Server error writing log');
   }
 });
 
- feature/github-test-grishma
-// Start the port
-=======
 // endpoint to receive vulnerability scan results
 app.post('/api/vulnerability-scan', (req, res) => {
   const payload = req.body;
@@ -113,8 +91,16 @@ app.get('/api/vulnerability-report/:machine_id', (req, res) => {
       const payload = JSON.parse(rawData);
 
       // Use the existing template logic to format the report
-      const easyToUnderstandReport = vulnerabilityTemplates.generateEasyToUnderstandReport(payload);
-      res.json(easyToUnderstandReport);
+      const reportGenerator = vulnerabilityTemplates.generateUserFriendlyReport ||
+        vulnerabilityTemplates.generateEasyToUnderstandReport;
+
+      if (typeof reportGenerator !== 'function') {
+        console.error('No report generator found in vulnerability_templates.js');
+        return res.status(500).json({ error: 'Report generator unavailable' });
+      }
+
+      const formattedReport = reportGenerator(payload);
+      res.json(formattedReport);
 
     } else {
       res.status(404).json({ error: `Report not found for machine_id: ${machine_id}` });
@@ -151,16 +137,17 @@ app.get('/api/events', (req, res) => {
 });
 
 // Start
-<<<<<<< HEAD
- dev
-app.listen(PORT, () => {
-  console.log(`Monitoring server listening on port ${PORT}`);
-  console.log(`POST reports to: http://localhost:${PORT}/api/report`);
-=======
-app.listen(port, () => {
-  console.log(`Monitoring server listening on port ${port}`);
->>>>>>> 6204083 (Significant changes to App.css, App.js, index.js, package.json, PenetrativeDocumentation.iml, profiles_settings.xml, scanner.py, test_scanner.py.)
+app.use((req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'frontend', 'build', 'index.html'));
 });
+
+if (require.main === module) {
+    app.listen(port, () => {
+        console.log(`Monitoring server listening on port ${port}`);
+    });
+};
+
+module.exports = app;
 
 
 
