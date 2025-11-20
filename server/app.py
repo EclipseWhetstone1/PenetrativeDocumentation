@@ -80,7 +80,7 @@ def run_vbox_command(args):
         else:
             redacted.append(item)
 
-    print(f"Running command (redacted): {' '.join(redacted)}")
+    print("Running VBoxManage command (arguments redacted for security).")
 
     try:
         result = subprocess.run(
