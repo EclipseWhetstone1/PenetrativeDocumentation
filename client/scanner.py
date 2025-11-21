@@ -8,7 +8,7 @@ import logging
 from packaging import version
 
 # --- Server/Machine ID Configuration ---
-SERVER_URL = "http://localhost:5000/api/scan"
+SERVER_URL = "http://localhost:3000/api/scan"
 MACHINE_ID_FILE = os.path.join(os.path.dirname(__file__), '..', 'monitoring', 'client', 'machine_id.txt')
 
 # --- Timeline Configuration ---
@@ -106,7 +106,7 @@ def send_vulnerability_report(vulnerabilities):
         else:
             print(f"Failed to send report. Server responded with: {response.status_code} {response.text}")
     except requests.exceptions.ConnectionError:
-        print("Error: Could not connect to the server. Is it running?")
+        print("Error: Could not connect to the server. Check to see that the server is running?")
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
 
@@ -241,7 +241,7 @@ def run_all_scans():
         return f"Scan complete. Found {len(outdated_software)} vulnerabilities."
 
 if __name__ == '__main__':
-    print("Running standalone scan...")
+    # print("Running standalone scan...")
     report = run_all_scans()
     print(report)
 

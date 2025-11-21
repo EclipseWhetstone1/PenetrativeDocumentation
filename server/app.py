@@ -48,12 +48,12 @@ VBOXMANAGE_PATH = "C:\\Program Files\\Oracle\\VirtualBox\\VBoxManage.exe"
 
 # --- GUEST VM CONFIGURATION ---
 # TODO: Update these values for our Target VM.
-GUEST_USERNAME = "VMUsername"  # The username for an account INSIDE the Windows VM
-GUEST_PASSWORD = "VMPassword"  # The password for that account
+GUEST_USERNAME = "user"  # The username for an account INSIDE the Windows VM
+GUEST_PASSWORD = "123"  # The password for that account
 # The full path to the Python executable INSIDE the VM.
 GUEST_PYTHON_PATH = "C:\\Users\\VMUsername\\AppData\\Local\\Programs\\Python\\Python39\\python.exe"
 # The full path to the main.py script INSIDE the VM.
-GUEST_SCRIPT_PATH = "C:\\Users\\VMUsername\\Desktop\\client\\main.py"
+GUEST_SCRIPT_PATH = "C:\\Users\\user\\Desktop\\main.py"
 
 app = Flask(__name__)
 CORS(app)
@@ -251,7 +251,7 @@ def get_remediation(vuln_key):
 
 if __name__ == '__main__':
     # app.run(debug=True, port=5000) # left off host="0.0.0.0"
-    app.run(debug=FLASK_DEBUG, port=5000)
+    app.run(debug=FLASK_DEBUG, port=3000)
 
 
 # --- Eclipse's original block of code ---

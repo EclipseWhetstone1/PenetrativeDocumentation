@@ -57,7 +57,7 @@ class SecurityApp:
         
         # Display the results in the text box
         self.report_text.delete('1.0', tk.END) # Clear previous results
-        report_content = "\n\n".join(vulnerabilities)
+        report_content = "".join(vulnerabilities)
         self.report_text.insert(tk.END, report_content)
         
     def show_main_frame(self):
