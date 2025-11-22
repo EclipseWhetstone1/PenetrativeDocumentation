@@ -1,7 +1,7 @@
 {
   "outdated_software": {
     "Google Chrome": {
-      "minimum_version": "125.0.0",
+      "minimum_version": "1250.0.0",
       "risk": "Outdated web browsers are a primary entry point for malware and phishing attacks."
     },
     "Mozilla Firefox": {
