@@ -21,16 +21,27 @@ function App() {
     setReport(null);
 
     try {
-      // We proxy this request to our server running on port 3001
-      const response = await fetch(`/api/vulnerability-report/${machineId}`);
+        // We proxy this request to our server running on port 3001
+        const response = await fetch(`http://localhost:3001/api/vulnerability-report/${machineId}`);
+        if (!response.ok) {
+            let errPayload;
+            try {
+                errPayload = await response.json();
+            } catch {
+                const text = await response.text();
+                errPayload = { error: text };
+            }
+            throw new Error(errPayload.error || `Server error: ${response.status}`);
+        }
+      //const response = await fetch(`http://localhost:3001/api/vulnerability-report/${machineId}`);
 
-      if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error || `Server error: ${response.status}`);
-      }
+      //if (!response.ok) {
+      //  const err = await response.json();
+      //  throw new Error(err.error || `Server error: ${response.status}`);
+      //}
 
-      const reportData = await response.json();
-      setReport(reportData);
+        const reportData = await response.json();
+        setReport(reportData);
     } catch (err) {
       console.error('Fetch error:', err);
       setError(`Failed to fetch report: ${err.message}. Is the server running?`);

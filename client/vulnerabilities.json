@@ -1,7 +1,7 @@
 {
   "outdated_software": {
     "Google Chrome": {
-      "minimum_version": "125.0.0",
+      "minimum_version": "1250.0.0",
       "risk": "Outdated web browsers are a primary entry point for malware and phishing attacks."
     },
     "Mozilla Firefox": {
@@ -13,7 +13,8 @@
       "risk": "Vulnerabilities in document readers can allow attackers to execute malicious code on your system."
     },
     "Java 8 Update 371": {
-        "minimum_version": "8.0.3710.11",
-        "risk": "Older versions of Java have numerous security flaws that are actively exploited."
+      "minimum_version": "8.0.3710.11",
+      "risk": "Older versions of Java have numerous security flaws that are actively exploited."
     }
   }
+}

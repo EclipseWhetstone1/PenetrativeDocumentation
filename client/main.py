@@ -10,8 +10,14 @@ def run_headless_scan():
     results to standard output in a structured JSON format.
     """
     try:
-        results = run_all_scans()
-        output_data = {"status": "success", "vulnerabilities": results}
+        vulns, summary = run_all_scans()  # Adjusted for new signature
+        output_data = {
+            "status": "success",
+            "summary": summary,
+            "vulnerabilities": vulns  # list of dicts
+        }
+        # results = run_all_scans()
+        # output_data = {"status": "success", "vulnerabilities": results}
     except Exception as e:
         output_data = {"status": "error", "message": str(e)}
 

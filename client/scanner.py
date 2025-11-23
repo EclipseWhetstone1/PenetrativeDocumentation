@@ -72,15 +72,47 @@ def send_vulnerability_report(vulnerabilities):
     # Sends the list of found vulnerabilities to the monitoring server.
     machine_id = get_machine_id()
 
+    normalized_vulns = []
+    for v in (vulnerabilities or []):
+        if isinstance(v, dict):
+            normalized_vulns.append({
+                "name": v.get("name"),
+                "risk": v.get("risk", ""),
+                "installed_version": v.get("installed_version") or v.get("installedVersion", ""),
+                "vulnerable_version": v.get("minimum_version") or v.get("vulnerable_version", ""),
+                "explanation": v.get("risk", "") or v.get("explanation"),
+                "fix": v.get("remediation") or v.get("fix", "")
+            })
+        else:
+            # Fallback for unexpected formats
+            normalized_vulns.append({
+                "name": str(v),
+                "risk": "",
+                "installed_version": "",
+                "vulnerable_version": "",
+                "explanation": "",
+                "fix": ""
+            })
+
     payload = {
         "machine_id": machine_id,
         "timestamp": datetime.datetime.now().isoformat(),
+        "vulnerabilities": normalized_vulns, # moved up. Check if this fixes it.
         "type": "VULNERABILITY_SCAN_RESULT",
-        "scan_data": {
-            "vulnerabilities": vulnerabilities,
-            "raw_output": f"Scan complete. Found {len(vulnerabilities)} vulnerabilities."
+        "scan_data": {  # moved down
+            "vulnerabilities": normalized_vulns,
+            "raw_output": f"Scan complete. Found {len(normalized_vulns)} vulnerabilities."
         }
     }
+
+    # Write local copy of payload for debugging
+    try:
+        out_path = os.path.join(os.path.dirname(__file__), 'last_scan_payload.json')
+        with open(out_path, 'w', encoding='utf-8') as f:
+            json.dump(payload, f, indent=2)
+        print(f"Local scan payload written to {out_path}")
+    except Exception as e:
+        print(f"Warning: Could not write local scan payload file: {e}")
 
     print(f"Sending report to {SERVER_URL}...")
     try:
@@ -93,6 +125,30 @@ def send_vulnerability_report(vulnerabilities):
         print("Error: Could not connect to the server. Is it running?")
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
+
+    # machine_id = get_machine_id()
+
+    # payload = {
+    #     "machine_id": machine_id,
+    #     "timestamp": datetime.datetime.now().isoformat(),
+    #     "type": "VULNERABILITY_SCAN_RESULT",
+    #     "scan_data": {
+    #         "vulnerabilities": vulnerabilities,
+    #         "raw_output": f"Scan complete. Found {len(vulnerabilities)} vulnerabilities."
+    #     }
+    # }
+
+    # print(f"Sending report to {SERVER_URL}...")
+    # try:
+    #     response = requests.post(SERVER_URL, json=payload)
+    #     if response.status_code == 200:
+    #         print("Report successfully sent to server.")
+    #     else:
+    #         print(f"Failed to send report. Server responded with: {response.status_code} {response.text}")
+    # except requests.exceptions.ConnectionError:
+    #     print("Error: Could not connect to the server. Is it running?")
+    # except Exception as e:
+    #     print(f"An unexpected error occurred: {e}")
 
 
 # --- Scan Functions ---
@@ -115,7 +171,7 @@ def _load_vulnerability_database():
     try:
         with open(db_path, 'r') as f:
             data = json.load(f)
-            return data.get("software", [])
+            return data.get("outdated_software", {})
     except json.JSONDecodeError:
         print(f"Error: Could not decode JSON from {db_path}. Is it a valid JSON file?")
         return []
@@ -132,25 +188,23 @@ def scan_outdated_software(installed_software, vulnerability_db):
 
     installed_map = {item['name'].lower(): item['version'] for item in installed_software}
 
-    for vuln in vulnerability_db:
-        vuln_name_lower = vuln['name'].lower()
+    for vuln, vuln_details in vulnerability_db.items():
+        vuln_name_lower = vuln.lower()
         if vuln_name_lower in installed_map:
             installed_version = installed_map[vuln_name_lower]
 
             try:
-                if version.parse(installed_version) < version.parse(vuln['vulnerable_version']):
-                    vuln_details = {
-                        "name": vuln['name'],
+                if version.parse(installed_version) < version.parse(vuln_details['minimum_version']):
+                    outdated_software.append({
+                        "name": vuln,
                         "installed_version": installed_version,
-                        "vulnerable_version": vuln['vulnerable_version'],
-                        "cve": vuln['cve'],
-                        "solution": vuln['solution']
-                    }
-                    outdated_software.append(vuln_details)
+                        "minimum_version": vuln_details.get('minimum_version'),
+                        "risk": vuln_details.get('risk')
+                    })
             except version.InvalidVersion:
-                # Catches empty or invalid versions
-                print(f"Warning: Could not compare versions for {vuln['name']}. Invalid format.")
-                print(f"  Installed: '{installed_version}', Vulnerable: '{vuln['vulnerable_version']}'")
+                # FIXED: vuln is a string key, not dict
+                print(f"Warning: Could not compare versions for '{vuln}'. Invalid format.")
+                print(f"  Installed: '{installed_version}', Minimum: '{vuln_details.get('minimum_version')}'")
                 continue
 
     return outdated_software
@@ -199,15 +253,15 @@ def run_all_scans():
     print("Loading vulnerability database...")
     vulnerability_db = _load_vulnerability_database()
     if not vulnerability_db:
-        return "Error: Could not load vulnerability database."
+        send_vulnerability_report([])
+        return [], "Error: Could not load vulnerability database."
 
     print("Scanning for installed software...")
     installed_software = _get_installed_software_windows()
     if not installed_software:
-        print("Could not find any installed software in the registry.")
         # Still send an "empty" report
         send_vulnerability_report([])
-        return "Could not find any installed software."
+        return [], "Could not find any installed software."
 
     print(f"Found {len(installed_software)} software entries. Comparing against database...")
     outdated_software = scan_outdated_software(installed_software, vulnerability_db)
@@ -215,15 +269,20 @@ def run_all_scans():
     print("Sending report to server...")
     send_vulnerability_report(outdated_software)
 
-    if not outdated_software:
-        return "Scan complete. No outdated software found."
-    else:
-        return f"Scan complete. Found {len(outdated_software)} vulnerabilities."
+    summary = ("Scan complete. Found {0} vulnerabilities.".format(len(outdated_software))
+               if outdated_software else "Scan complete. No outdated software found.")
+    return outdated_software, summary
+    # if not outdated_software:
+    #     return "Scan complete. No outdated software found."
+    # else:
+    #     return f"Scan complete. Found {len(outdated_software)} vulnerabilities."
 
 if __name__ == '__main__':
     print("Running standalone scan...")
-    report = run_all_scans()
-    print(report)
+    vulns, summary = run_all_scans()
+    print(summary)
+    # report = run_all_scans()
+    # print(report)
 
 
 

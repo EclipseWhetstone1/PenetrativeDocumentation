@@ -26,10 +26,15 @@ import logging
 import json
 import time
 import os
+import pathlib
 # Enable toggling Flask debug mode via environment variable FLASK_DEBUG
 # Accepts: "1", "true", "True", "yes" to enable. Defaults to False.
 FLASK_DEBUG = os.getenv("FLASK_DEBUG", "False").lower() in ("1", "true", "yes")
 import subprocess
+
+# using FLASK_PORT and ENABLE_FLASK_SCAN_API as testing variables
+FLASK_PORT = int(os.getenv("FLASK_PORT", "3002"))
+ENABLE_FLASK_SCAN_API = os.getenv("ENABLE_FLASK_SCAN_API", "false").lower() in ("1", "true", "yes")
 
 # --- INTEGRATION: Step 1 ---
 try:
@@ -113,18 +118,6 @@ def run_in_guest():
 # --- API Endpoints ---
 
 # --- INTEGRATION: Step 2 ---
-@app.route('/api/scan', methods=['GET'])
-def get_scan_results():
-    """Runs the enhanced scanner and returns Recompute Findings."""
-    print("Received request to /api/scan. Running enhanced scanner...")
-    try:
-        findings = run_all_scans()  # updated scanner.py returns multi-line strings
-        # Wrap in JSON according to INT002B contract
-        return jsonify({"findings": findings}), 200
-    except Exception as e:
-        print(f"Error during scan: {e}")
-        return jsonify({"error": "Internal server error", "message": str(e)}), 500
-
 
 @app.route('/api/simulate', methods=['POST'])
 def start_simulation():
@@ -190,6 +183,7 @@ def start_simulation():
         yield "data: FINISHED\n\n"
 
     return Response(event_stream(), mimetype='text/event-stream')
+
 # --- Remediation endpoint (US010) ---
 @app.route("/", methods=["GET"])
 def index():
@@ -249,9 +243,94 @@ def get_remediation(vuln_key):
     }
     return jsonify(safe_content), 200
 
+DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
+REPORTS_FILE = os.path.join(DATA_DIR, "reports.json")
+pathlib.Path(DATA_DIR).mkdir(parents=True, exist_ok=True)
+
+def _load_reports():
+    try:
+        with open(REPORTS_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {}
+    except json.JSONDecodeError:
+        # Corrupt file: return empty store (caller may overwrite)
+        return {}
+
+def _save_reports(reports):
+    with open(REPORTS_FILE, "w", encoding="utf-8") as f:
+        json.dump(reports, f, indent=2, ensure_ascii=False)
+
+
+if ENABLE_FLASK_SCAN_API:
+    @app.route('/api/scan', methods=['GET'])
+    def get_scan_results():
+        """Runs the enhanced scanner and returns Recompute Findings."""
+        print("Received request to /api/scan (Flask). Running enhanced scanner...")
+        try:
+            findings = run_all_scans()  # updated scanner.py returns multi-line strings
+            # Wrap in JSON according to INT002B contract
+            return jsonify({"findings": findings}), 200
+        except Exception as e:
+            print(f"Error during scan: {e}")
+            return jsonify({"error": "Internal server error", "message": str(e)}), 500
+
+    @app.route("/api/vulnerability-scan", methods=["POST"])
+    def receive_vulnerability_scan():
+        """
+        Accepts POSTs from the client/scanner.py.
+        Normalizes payload to the format that React expects and stores it by machine_id.
+        """
+        if not request.is_json:
+            return jsonify({"error": "Content-Type must be application/json"}), 400
+
+        payload = request.get_json()
+        machine_id = payload.get("machine_id")
+        timestamp = payload.get("timestamp")
+        scan_data = payload.get("scan_data", {})
+        vulnerabilities = scan_data.get("vulnerabilities", [])
+
+        if not machine_id or not timestamp:
+            return jsonify({"error": "Missing required fields: machine_id or timestamp"}), 400
+
+        # tried to change schema to match React frontend expectations
+        normalized = []
+        for v in vulnerabilities:
+            # scanner.py provides: name, installed_version, minimum_version, risk
+            normalized.append({
+                "name": v.get("name"),
+                "risk": v.get("risk"),
+                "installed_version": v.get("installed_version") or v.get("installedVersion"),
+                "vulnerable_version": v.get("minimum_version") or v.get("vulnerable_version"),
+                "explanation": v.get("risk") or "",
+                "fix": v.get("remediation") or ""
+            })
+
+        reports = _load_reports()
+        reports[machine_id] = {
+            "machine_id": machine_id,
+            "timestamp": timestamp,
+            "vulnerabilities": normalized
+        }
+        _save_reports(reports)
+
+        return jsonify({"status": "ok", "machine_id": machine_id}), 200
+
+    @app.route("/api/vulnerability-report/<machine_id>", methods=["GET"])
+    def get_vulnerability_report(machine_id):
+        """
+        Returns the latest stored report for a machine_id (the React frontend calls this).
+        """
+        reports = _load_reports()
+        if machine_id not in reports:
+            return jsonify({"error": "report not found"}), 404
+        return jsonify(reports[machine_id]), 200
+else:
+    print("Flask vulnerability scan API is DISABLED. Set ENABLE_FLASK_SCAN_API=True to enable.")
+
 if __name__ == '__main__':
     # app.run(debug=True, port=5000) # left off host="0.0.0.0"
-    app.run(debug=FLASK_DEBUG, port=5001)
+    app.run(debug=FLASK_DEBUG, port=FLASK_PORT)
 
 
 # --- Eclipse's original block of code ---
