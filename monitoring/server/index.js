@@ -78,12 +78,17 @@ app.post('/api/vulnerability-scan', vulnerabilityScanLimiter, (req, res) => {
         }
 
         const reportPath = path.join(REPORTS_DIR, `${machine_id}.json`);
-        fs.writeFileSync(reportPath, JSON.stringify(payload, null, 2));
-        console.log(`Successfully saved report to ${reportPath}`);
+//        fs.writeFileSync(reportPath, JSON.stringify(payload, null, 2));
+//        console.log(`Successfully saved report to ${reportPath}`);
 
-        // Ensure that the resolved path is still within REPORTS_DIR
-        const resolvedReportPath = path.resolve(reportPath);
-        if (!resolvedReportPath.startsWith(path.resolve(REPORTS_DIR) + path.sep)) {
+
+//        // Ensure that the resolved path is still within REPORTS_DIR
+//        const resolvedReportPath = path.resolve(reportPath);
+//        if (!resolvedReportPath.startsWith(path.resolve(REPORTS_DIR) + path.sep)) {
+
+        // Ensure the file is strictly under REPORTS_DIR. This works cross-platform.
+        const reportsDirResolved = path.resolve(REPORTS_DIR) + path.sep;
+        if (!resolvedReportPath.startsWith(reportsDirResolved)) {
             return res.status(400).json({ error: 'Invalid machine_id leads to unsafe path' });
         }
 
