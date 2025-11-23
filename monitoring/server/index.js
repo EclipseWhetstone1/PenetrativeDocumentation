@@ -6,6 +6,7 @@ const morgan = require('morgan');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const vulnerabilityTemplates = require('./vulnerability_templates');
+const rateLimit = require('express-rate-limit');
 
 const port = 3001;
 // const PORT = process.env.PORT || 3000; // Old PORT value // 5001 is used by Flask server
@@ -20,6 +21,12 @@ app.use(express.static(path.join(__dirname, '..', 'frontend', 'build')));
 const REPORTS_DIR = path.join(__dirname, 'reports');
 const EVENTS_LOG_FILE = path.join(__dirname, 'events.log');
 
+// Rate limiter for sensitive endpoints
+const vulnerabilityScanLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute window
+  max: 10, // limit each IP to 10 requests per windowMs
+  message: { error: 'Too many vulnerability scan submissions from this IP, please try again later.' }
+});
 
 // middleware
 app.use(morgan('dev'));
@@ -54,7 +61,7 @@ app.post('/api/report', (req, res) => {
 });
 
 // endpoint to receive vulnerability scan results
-app.post('/api/vulnerability-scan', (req, res) => {
+app.post('/api/vulnerability-scan', vulnerabilityScanLimiter, (req, res) => {
   const payload = req.body;
   console.log(`Received scan from machine_id: ${payload.machine_id}`);
 
