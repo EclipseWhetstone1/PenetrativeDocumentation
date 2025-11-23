@@ -72,9 +72,23 @@ app.post('/api/vulnerability-scan', vulnerabilityScanLimiter, (req, res) => {
             return res.status(400).json({ error: 'Missing machine_id in payload' });
         }
 
+        // Validate machine_id: only allow letters, numbers, dashes, underscores
+        if (!/^[\w-]+$/.test(machine_id)) {
+            return res.status(400).json({ error: 'Invalid machine_id: must be alphanumeric, dashes or underscores only' });
+        }
+
         const reportPath = path.join(REPORTS_DIR, `${machine_id}.json`);
         fs.writeFileSync(reportPath, JSON.stringify(payload, null, 2));
         console.log(`Successfully saved report to ${reportPath}`);
+
+        // Ensure that the resolved path is still within REPORTS_DIR
+        const resolvedReportPath = path.resolve(reportPath);
+        if (!resolvedReportPath.startsWith(path.resolve(REPORTS_DIR) + path.sep)) {
+            return res.status(400).json({ error: 'Invalid machine_id leads to unsafe path' });
+        }
+
+        fs.writeFileSync(resolvedReportPath, JSON.stringify(payload, null, 2));
+        console.log(`Successfully saved report to ${resolvedReportPath}`);
         return res.status(200).json({ status: 'ok', machine_id });
     } catch (err) {
         console.error('Failed to save vulnerability report:', err);
@@ -88,6 +102,21 @@ app.get('/api/vulnerability-report/:machine_id', (req, res) => {
 
     try {
         const reportPath = path.join(REPORTS_DIR, `${machine_id}.json`);
+
+        // Ensure REPORTS_DIR is absolute for safety
+        const baseDir = path.resolve(REPORTS_DIR);
+        const requestedPath = path.resolve(baseDir, `${machine_id}.json`);
+        // Optionally resolve symlinks for stricter checking
+        let reportPath;
+        try {
+            reportPath = fs.realpathSync(requestedPath);
+        } catch (err) {
+            return res.status(404).json({ error: `Report not found for machine_id: ${machine_id}` });
+        }
+        if (!reportPath.startsWith(baseDir)) {
+            return res.status(403).json({ error: "Forbidden: invalid machine_id path" });
+        }
+
         if (!fs.existsSync(reportPath)) {
             return res.status(404).json({ error: `Report not found for machine_id: ${machine_id}` });
         }
