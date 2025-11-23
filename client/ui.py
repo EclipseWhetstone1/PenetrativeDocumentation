@@ -29,7 +29,7 @@ class SecurityApp:
         button_frame = tk.Frame(self.main_frame)
         button_frame.pack(pady=20)
         
-        learn_more_btn = tk.Button(button_frame, text="View Report", command=self.show_report, width=15, height=2)
+        learn_more_btn = tk.Button(button_frame, text="Start Scan", command=self.show_report, width=15, height=2)
         learn_more_btn.pack(side=tk.LEFT, padx=10)
         
         close_btn = tk.Button(button_frame, text="Close", command=root.quit, width=15, height=2)
@@ -52,13 +52,22 @@ class SecurityApp:
         self.main_frame.pack_forget()
         self.report_frame.pack(expand=True, fill=tk.BOTH)
         
-        # --- Trigger the scan when showing the report ---
-        vulnerabilities = run_all_scans() # MODIFIED: Calls the new main runner
-        
-        # Display the results in the text box
-        self.report_text.delete('1.0', tk.END) # Clear previous results
-        report_content = "".join(vulnerabilities)
-        self.report_text.insert(tk.END, report_content)
+        vulns, summary = run_all_scans() # returns list, summary string
+
+        self.report_text.delete('1.0', tk.END)
+
+        lines = [summary, ""]
+        if vulns:
+            for v in vulns:
+                # v is a dict with keys from scan_outdated_software
+                lines.append(
+                    f"{v.get('name')}: installed={v.get('installed_version')} "
+                    f"min_required={v.get('minimum_version')} risk={v.get('risk', '')}"
+                )
+        else:
+            lines.append("No outdated software found.")
+
+        self.report_text.insert(tk.END, "\n".join(lines))
         
     def show_main_frame(self):
         """Hides the report frame and shows the main welcome frame."""

@@ -26,10 +26,17 @@ import logging
 import json
 import time
 import os
+import pathlib
+import traceback
+
 # Enable toggling Flask debug mode via environment variable FLASK_DEBUG
 # Accepts: "1", "true", "True", "yes" to enable. Defaults to False.
 FLASK_DEBUG = os.getenv("FLASK_DEBUG", "False").lower() in ("1", "true", "yes")
 import subprocess
+
+# using FLASK_PORT and ENABLE_FLASK_SCAN_API as testing variables
+FLASK_PORT = int(os.getenv("FLASK_PORT", "3002"))
+ENABLE_FLASK_SCAN_API = os.getenv("ENABLE_FLASK_SCAN_API", "false").lower() in ("1", "true", "yes")
 
 # --- INTEGRATION: Step 1 ---
 try:
@@ -39,7 +46,7 @@ except ImportError:
         return ["ERROR: scanner.py not found or contains an error."]
 
 # --- VirtualBox Configuration ---
-# TODO: We will have to update these values to match our VM snapshot when we are ready to run and test.
+# Final version will have to update these values to match our VM snapshot when we are ready to run and test.
 VM_NAME = "Windows 10 Dev"  # The name of our VM
 SNAPSHOT_NAME = "CleanInstall"   # The name of the snapshot to revert to
 # VBoxManage is usually in the VirtualBox installation directory for Windows.
@@ -47,7 +54,7 @@ SNAPSHOT_NAME = "CleanInstall"   # The name of the snapshot to revert to
 VBOXMANAGE_PATH = "C:\\Program Files\\Oracle\\VirtualBox\\VBoxManage.exe"
 
 # --- GUEST VM CONFIGURATION ---
-# TODO: Update these values for our Target VM.
+# For final scanning application: Update these values for our Target VM.
 GUEST_USERNAME = "VMUsername"  # The username for an account INSIDE the Windows VM
 GUEST_PASSWORD = "VMPassword"  # The password for that account
 # The full path to the Python executable INSIDE the VM.
@@ -138,18 +145,6 @@ def run_in_guest():
 # --- API Endpoints ---
 
 # --- INTEGRATION: Step 2 ---
-@app.route('/api/scan', methods=['GET'])
-def get_scan_results():
-    """Runs the enhanced scanner and returns Recompute Findings."""
-    print("Received request to /api/scan. Running enhanced scanner...")
-    try:
-        findings = run_all_scans()  # updated scanner.py returns multi-line strings
-        # Wrap in JSON according to INT002B contract
-        return jsonify({"findings": findings}), 200
-    except Exception as e:
-        print(f"Error during scan: {e}")
-        return jsonify({"error": "Internal server error", "message": str(e)}), 500
-
 
 @app.route('/api/simulate', methods=['POST'])
 def start_simulation():
@@ -215,6 +210,7 @@ def start_simulation():
         yield "data: FINISHED\n\n"
 
     return Response(event_stream(), mimetype='text/event-stream')
+
 # --- Remediation endpoint (US010) ---
 @app.route("/", methods=["GET"])
 def index():
@@ -274,157 +270,91 @@ def get_remediation(vuln_key):
     }
     return jsonify(safe_content), 200
 
+DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
+REPORTS_FILE = os.path.join(DATA_DIR, "reports.json")
+pathlib.Path(DATA_DIR).mkdir(parents=True, exist_ok=True)
+
+def _load_reports():
+    try:
+        with open(REPORTS_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {}
+    except json.JSONDecodeError:
+        # Corrupt file: return empty store (caller may overwrite)
+        return {}
+
+def _save_reports(reports):
+    with open(REPORTS_FILE, "w", encoding="utf-8") as f:
+        json.dump(reports, f, indent=2, ensure_ascii=False)
+
+
+if ENABLE_FLASK_SCAN_API:
+    @app.route('/api/scan', methods=['GET'])
+    def get_scan_results():
+        """Runs the enhanced scanner and returns Recompute Findings."""
+        print("Received request to /api/scan (Flask). Running enhanced scanner...")
+        try:
+            findings = run_all_scans()  # updated scanner.py returns multi-line strings
+            # Wrap in JSON according to INT002B contract
+            return jsonify({"findings": findings}), 200
+        except Exception as e:
+            logging.error("Error during scan:\n%s", traceback.format_exc())
+            return jsonify({"error": "Internal server error"}), 500
+
+    @app.route("/api/vulnerability-scan", methods=["POST"])
+    def receive_vulnerability_scan():
+        """
+        Accepts POSTs from the client/scanner.py.
+        Normalizes payload to the format that React expects and stores it by machine_id.
+        """
+        if not request.is_json:
+            return jsonify({"error": "Content-Type must be application/json"}), 400
+
+        payload = request.get_json()
+        machine_id = payload.get("machine_id")
+        timestamp = payload.get("timestamp")
+        scan_data = payload.get("scan_data", {})
+        vulnerabilities = scan_data.get("vulnerabilities", [])
+
+        if not machine_id or not timestamp:
+            return jsonify({"error": "Missing required fields: machine_id or timestamp"}), 400
+
+        # tried to change schema to match React frontend expectations
+        normalized = []
+        for v in vulnerabilities:
+            # scanner.py provides: name, installed_version, minimum_version, risk
+            normalized.append({
+                "name": v.get("name"),
+                "risk": v.get("risk"),
+                "installed_version": v.get("installed_version") or v.get("installedVersion"),
+                "vulnerable_version": v.get("minimum_version") or v.get("vulnerable_version"),
+                "explanation": v.get("risk") or "",
+                "fix": v.get("remediation") or ""
+            })
+
+        reports = _load_reports()
+        reports[machine_id] = {
+            "machine_id": machine_id,
+            "timestamp": timestamp,
+            "vulnerabilities": normalized
+        }
+        _save_reports(reports)
+
+        return jsonify({"status": "ok", "machine_id": machine_id}), 200
+
+    @app.route("/api/vulnerability-report/<machine_id>", methods=["GET"])
+    def get_vulnerability_report(machine_id):
+        """
+        Returns the latest stored report for a machine_id (the React frontend calls this).
+        """
+        reports = _load_reports()
+        if machine_id not in reports:
+            return jsonify({"error": "report not found"}), 404
+        return jsonify(reports[machine_id]), 200
+else:
+    print("Flask vulnerability scan API is DISABLED. Set ENABLE_FLASK_SCAN_API=True to enable.")
+
 if __name__ == '__main__':
     # app.run(debug=True, port=5000) # left off host="0.0.0.0"
-    app.run(debug=FLASK_DEBUG, port=5001)
-
-
-# --- Eclipse's original block of code ---
-# logging.basicConfig(
-#     filename="reports.log",
-#     level=logging.INFO,
-#     format="%(message)s"
-# )
-#
-# def validate_payload(data):
-#     required = ["machine_id", "timestamp", "event", "data"]
-#     return all(key in data for key in required)
-#
-# @app.route("/api/report", methods=["POST"])
-# def report():
-#     if not request.is_json:
-#         return jsonify({"status": "error", "message": "Content-Type must be application/json"}), 400
-#
-#     data = request.get_json()
-#     if not validate_payload(data):
-#         return jsonify({"status": "error", "message": "Missing required fields"}), 400
-#
-#     logging.info(json.dumps(data))
-#     return jsonify({"status": "ok", "received_event": data["event"]}), 200
-#
-# if __name__ == "__main__":
-#     app.run(host="0.0.0.0", port=5000, debug=True)
-
-
-# --- Original app.py before modifications to Guest VM ---
-# from flask import Flask, request, jsonify, Response
-# from flask_cors import CORS
-# import logging
-# import json
-# import time
-# import os
-# import subprocess
-#
-# # --- INTEGRATION: Step 1 ---
-# try:
-#     from scanner import run_all_scans
-# except ImportError:
-#     def run_all_scans():
-#         return ["ERROR: scanner.py not found or contains an error."]
-#
-# # --- VirtualBox Configuration ---
-# # TODO: We will have to update these values to match our VM snapshot when we are ready to run and test.
-# VM_NAME = "Windows 10 Dev"  # The name of our VM
-# SNAPSHOT_NAME = "CleanInstall"   # The name of the snapshot to revert to
-# # VBoxManage is usually in the VirtualBox installation directory for Windows.
-# # We will have to update this path if we are using a different installation directory.
-# VBOXMANAGE_PATH = "C:\\Program Files\\Oracle\\VirtualBox\\VBoxManage.exe"
-#
-# app = Flask(__name__)
-# CORS(app)
-#
-#
-# # --- VBoxManage Helper Functions ---
-#
-# def run_vbox_command(args):
-#     """Helper function to run VBoxManage commands."""
-#     command = [VBOXMANAGE_PATH] + args
-#     print(f"Running command: {' '.join(command)}")
-#     try:
-#         # Using check=True will raise a CalledProcessError if the command fails
-#         result = subprocess.run(command, check=True, capture_output=True, text=True)
-#         return True, result.stdout
-#     except FileNotFoundError:
-#         error_msg = f"Error: VBoxManage.exe not found at '{VBOXMANAGE_PATH}'. Please check the path."
-#         print(error_msg)
-#         return False, error_msg
-#     except subprocess.CalledProcessError as e:
-#         error_msg = f"Error executing command: {e}\n{e.stderr}"
-#         print(error_msg)
-#         return False, error_msg
-#
-# def revert_to_snapshot():
-#     """Reverts the VM to the clean snapshot."""
-#     return run_vbox_command(["snapshot", VM_NAME, "restore", SNAPSHOT_NAME])
-#
-# def start_vm():
-#     """Starts the VM without pulling up the window."""
-#     return run_vbox_command(["startvm", VM_NAME, "--type", "headless"])
-#
-# def stop_vm():
-#     """Shuts down the VM."""
-#     return run_vbox_command(["controlvm", VM_NAME, "poweroff"])
-#
-#
-# # --- API Endpoints ---
-# # --- INTEGRATION: Step 2 ---
-# @app.route('/api/scan', methods=['GET'])
-# def get_scan_results():
-#     """Runs the actual scanner."""
-#     print("Received request to /api/scan. Running scanner...")
-#     try:
-#         results = run_all_scans()
-#         print(f"Scan complete. Found {len(results)} items.")
-#         return jsonify(results)
-#     except Exception as e:
-#         print(f"An error occurred during scan: {e}")
-#         return jsonify({"error": "An internal server error occurred during the scan."}), 500
-#
-# @app.route('/api/simulate', methods=['POST'])
-# def start_simulation():
-#     """
-#     This endpoint now runs a real simulation using VirtualBox.
-#     It streams status updates back to the React frontend.
-#     """
-#
-#     def event_stream():
-#         # Step 1: Revert the VM to a clean state
-#         yield "data: Reverting VM to clean snapshot...\n\n"
-#         success, output = revert_to_snapshot()
-#         if not success:
-#             yield f"data: ERROR: {output}\n\n"
-#             yield "data: FINISHED\n\n"
-#             return
-#         yield "data: Revert successful.\n\n"
-#         time.sleep(1)
-#
-#         # Step 2: Start the VM
-#         yield "data: Starting virtual machine... (this may take a moment)\n\n"
-#         success, output = start_vm()
-#         if not success:
-#             yield f"data: ERROR: {output}\n\n"
-#             yield "data: FINISHED\n\n"
-#             return
-#         yield "data: VM started successfully in the background.\n\n"
-#         time.sleep(5)  # Gives the VM time to boot
-#
-#         # Step 3: Run the exploit inside the VM (currently only placeholder with time.sleep(10) )
-#         # (In a real scenario, we would use VBoxManage guestcontrol to run a script inside the VM)
-#         yield "data: Running simulated exploit against the running VM...\n\n"
-#         time.sleep(10) # Simulate exploit running for 10 seconds
-#         yield "data: Exploit simulation complete.\n\n"
-#
-#         # Step 4: Shut down the VM
-#         yield "data: Shutting down the VM...\n\n"
-#         success, output = stop_vm()
-#         if not success:
-#             yield f"data: ERROR: {output}\n\n"
-#         else:
-#             yield "data: VM powered off.\n\n"
-#
-#         yield "data: FINISHED\n\n"
-#
-#     return Response(event_stream(), mimetype='text/event-stream')
-#
-# if __name__ == '__main__':
-#     app.run(debug=True, port=5000) # left off host="0.0.0.0"
+    app.run(debug=FLASK_DEBUG, port=FLASK_PORT)

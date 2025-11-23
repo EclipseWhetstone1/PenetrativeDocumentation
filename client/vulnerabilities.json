@@ -13,8 +13,8 @@
       "risk": "Vulnerabilities in document readers can allow attackers to execute malicious code on your system."
     },
     "Java 8 Update 371": {
-        "minimum_version": "8.0.3710.11",
-        "risk": "Older versions of Java have numerous security flaws that are actively exploited."
+      "minimum_version": "8.0.3710.11",
+      "risk": "Older versions of Java have numerous security flaws that are actively exploited."
     }
   }
 }
