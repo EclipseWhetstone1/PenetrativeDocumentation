@@ -100,6 +100,11 @@ app.post('/api/vulnerability-scan', vulnerabilityScanLimiter, (req, res) => {
 app.get('/api/vulnerability-report/:machine_id', (req, res) => {
     const { machine_id } = req.params;
 
+    // Validate machine_id to prevent path traversal and unsafe input
+    if (!/^[a-zA-Z0-9_-]+$/.test(machine_id)) {
+        return res.status(400).json({ error: 'Invalid machine_id format' });
+    }
+
     try {
         const reportPath = path.join(REPORTS_DIR, `${machine_id}.json`);
 
