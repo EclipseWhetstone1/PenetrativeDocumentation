@@ -72,4 +72,5 @@ class SecurityApp:
     def show_main_frame(self):
         """Hides the report frame and shows the main welcome frame."""
         self.report_frame.pack_forget()
+
         self.main_frame.pack(expand=True, fill=tk.BOTH)
