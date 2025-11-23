@@ -68,14 +68,6 @@ class SecurityApp:
             lines.append("No outdated software found.")
 
         self.report_text.insert(tk.END, "\n".join(lines))
-
-        # # --- Trigger the scan when showing the report ---
-        # vulnerabilities = run_all_scans() # MODIFIED: Calls the new main runner
-        
-        # # Display the results in the text box
-        # self.report_text.delete('1.0', tk.END) # Clear previous results
-        # report_content = "".join(vulnerabilities)
-        # self.report_text.insert(tk.END, report_content)
         
     def show_main_frame(self):
         """Hides the report frame and shows the main welcome frame."""
