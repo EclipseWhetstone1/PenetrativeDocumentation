@@ -17,6 +17,31 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, '..', 'frontend', 'build')));
 
+// Rate limiting configuration
+// Tune with env vars, else fall back to defaults
+const REPORT_LIMIT = parseInt(process.env.REPORT_RATE_LIMIT || '30', 10);
+const SCAN_LIMIT = parseInt(process.env.SCAN_RATE_LIMIT || '15', 10);
+const WINDOW_MS = parseInt(process.env.RATE_LIMIT_WINDOW_MS || (60 * 1000), 10);
+
+// Per-route limiters
+const reportLimiter = rateLimit({
+    windowMs: WINDOW_MS,
+    limit: REPORT_LIMIT,
+    message: { error: 'Too many /api/report requests. Please slow down.' },
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+    keyGenerator: (req) => req.ip,
+});
+
+const scanLimiter = rateLimit({
+    windowMs: WINDOW_MS,
+    limit: SCAN_LIMIT,
+    message: { error: 'Too many /api/vulnerability-scan submissions. Please retry later.' },
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+    keyGenerator: (req) => req.ip,
+});
+
 // For persistent file storage
 const REPORTS_DIR = path.join(__dirname, 'reports');
 const EVENTS_LOG_FILE = path.join(__dirname, 'events.log');
@@ -207,6 +232,18 @@ app.get('/api/events', (req, res) => {
     res.status(500).send('Server error reading log');
   }
 });
+
+// Catch-all to serve React frontend
+app.get('/*', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'frontend', 'build', 'index.html'));
+});
+
+if (require.main === module) {
+    app.listen(port, () => {
+        console.log(`Monitoring server listening on port ${port}`);
+        console.log(`Rate limits: /api/report=${REPORT_LIMIT}/min, /api/vulnerability-scan=${SCAN_LIMIT}/min`);
+    });
+}
 
 // Start
 app.use((req, res) => {
