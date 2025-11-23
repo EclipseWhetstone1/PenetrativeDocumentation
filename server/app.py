@@ -27,6 +27,8 @@ import json
 import time
 import os
 import pathlib
+import traceback
+
 # Enable toggling Flask debug mode via environment variable FLASK_DEBUG
 # Accepts: "1", "true", "True", "yes" to enable. Defaults to False.
 FLASK_DEBUG = os.getenv("FLASK_DEBUG", "False").lower() in ("1", "true", "yes")
@@ -272,8 +274,8 @@ if ENABLE_FLASK_SCAN_API:
             # Wrap in JSON according to INT002B contract
             return jsonify({"findings": findings}), 200
         except Exception as e:
-            print(f"Error during scan: {e}")
-            return jsonify({"error": "Internal server error", "message": str(e)}), 500
+            logging.error("Error during scan:\n%s", traceback.format_exc())
+            return jsonify({"error": "Internal server error"}), 500
 
     @app.route("/api/vulnerability-scan", methods=["POST"])
     def receive_vulnerability_scan():
