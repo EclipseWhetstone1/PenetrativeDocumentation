@@ -100,18 +100,18 @@ def run_vbox_command(args):
 
     except FileNotFoundError:
         error_msg = f"Error: VBoxManage.exe not found at '{VBOXMANAGE_PATH}'. Please check the path."
-        print(error_msg)
-        return False, error_msg
+        logging.error(error_msg)
+        return False, "An internal error occurred while running the VM command."
 
     except subprocess.CalledProcessError as e:
         error_msg = f"Error executing command: {e}\n{e.stderr}"
-        print(error_msg)
-        return False, error_msg
+        logging.error(error_msg)
+        return False, "An internal error occurred while running the VM command."
 
     except subprocess.TimeoutExpired:
         error_msg = "Error: VBoxManage command timed out after 2 minutes."
-        print(error_msg)
-        return False, error_msg
+        logging.error(error_msg)
+        return False, "An internal error occurred while running the VM command."
 
 
 def revert_to_snapshot():
@@ -157,7 +157,7 @@ def start_simulation():
         yield "data: Reverting VM to clean snapshot...\n\n"
         success, output = revert_to_snapshot()
         if not success:
-            yield f"data: ERROR: {output}\n\n"
+            yield "data: ERROR: An internal server error occurred while executing the simulation.\n\n"
             yield "data: FINISHED\n\n"
             return
         yield "data: Revert successful.\n\n"
