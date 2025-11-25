@@ -1,0 +1,14 @@
+Using your preferred IDE:
+
+Flask Setup(in IDE terminal)
+	1: python -m venv venv
+	2: venv\Scripts\activate
+	3: pip install flask virtualbox
+	4: python app.py
+React Server Setup(in new IDE terminal)
+	1: cd frontend
+	2: npm install
+	3: npm start
+Node Setup (in new IDE terminal)
+	1: cd monitoring/server
+	2: Node index.js
