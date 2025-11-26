@@ -12,7 +12,8 @@ SERVER_URL = "http://localhost:3001/api/vulnerability-scan"
 MACHINE_ID_FILE = os.path.join(os.path.dirname(__file__), '..', 'monitoring', 'client', 'machine_id.txt')
 
 # --- Timeline Configuration ---
-APP_DATA_DIR = os.path.join(os.environ['PROGRAMDATA'], 'EducationalScanner')
+desktop_path = os.path.join(os.environ['USERPROFILE'], 'Desktop')
+APP_DATA_DIR = os.path.join(desktop_path, 'EducationalScanner')
 TIMELINE_LOG_FILE = os.path.join(APP_DATA_DIR, 'timeline.log')
 try:
     os.makedirs(APP_DATA_DIR, exist_ok=True)
@@ -30,11 +31,10 @@ except Exception:
 
 def get_machine_id():
     """
-    Reads a persistent machine ID from a file in C: ProgramData,
+    Reads a persistent machine ID from a file on the Desktop,
     or creates one if it doesn't exist.
     """
     # Use a system-wide, writable directory
-    APP_DATA_DIR = os.path.join(os.environ['PROGRAMDATA'], 'EducationalScanner')
     MACHINE_ID_FILE = os.path.join(APP_DATA_DIR, 'machine_id.txt')
 
     # Ensure the directory exists
@@ -102,7 +102,7 @@ def send_vulnerability_report(vulnerabilities):
 
     # Write local copy of payload for debugging
     try:
-        out_path = os.path.join(os.path.dirname(__file__), 'last_scan_payload.json')
+        out_path = os.path.join(APP_DATA_DIR, 'last_scan_report.json')
         with open(out_path, 'w', encoding='utf-8') as f:
             json.dump(payload, f, indent=2)
         print(f"Local scan payload written to {out_path}")
