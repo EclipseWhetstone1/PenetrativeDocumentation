@@ -2,7 +2,8 @@
   "outdated_software": {
     "Google Chrome": {
       "minimum_version": "1250.0.0",
-      "risk": "Outdated web browsers are a primary entry point for malware and phishing attacks."
+      "risk": "Outdated web browsers are a primary entry point for malware and phishing attacks.",
+      "remediation":  "1. Open Chrome.\n2. Click the three dots in the top-right corner.\n3. Go to 'Help' -> 'About Google Chrome'.\n4. Chrome will automatically find and apply the latest update. Relaunch when prompted."
     },
     "Mozilla Firefox": {
       "minimum_version": "126.0",
